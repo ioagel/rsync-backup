@@ -1,8 +1,9 @@
-FROM alpine:3.9
+FROM debian:stretch-slim
 
 MAINTAINER Ioannis Angelakopoulos<ioagel@gmail.com>
 
-RUN apk add --no-cache rsync openssh-client && \
-  mkdir /backup
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-client rsync && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir /backup
 
 VOLUME ["/backup"]
