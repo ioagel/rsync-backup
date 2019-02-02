@@ -1,4 +1,4 @@
 # HOWTO
 
-Simple debian slim image with rsync functionality
+Simple alpine image with rsync functionality
 
