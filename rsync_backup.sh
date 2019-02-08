@@ -45,42 +45,44 @@ backup() {
     BACKUP_LOG_DIR="${BACKUP_ROOTDIR}/logs"
 
     # Log file
-    LOGFILE="${BACKUP_LOG_DIR}/${TIMESTAMP}.log"
+    # ${REMOTE_PATH%/} -> removes 'slash' from ending of path, if it exists
+    LOGFILE_MAIN="${BACKUP_LOG_DIR}/$(basename ${REMOTE_PATH%/})_${REMOTE_HOST}.log"
+    LOGFILE_TEMP="/tmp/$(basename ${REMOTE_PATH%/})_${REMOTE_HOST}_${TIMESTAMP}.log"
 
     # Check and create directories.
     [[ ! -d "${BACKUP_DIR}" ]] && mkdir -p "${BACKUP_DIR}" 2>/dev/null
     [[ ! -d "${BACKUP_LOG_DIR}" ]] && mkdir -p "${BACKUP_LOG_DIR}" 2>/dev/null
 
-    # Initialize log file.
-    echo "==========================================================" > "${LOGFILE}"
-    echo "* Starting backup: ${TIMESTAMP}" >> "${LOGFILE}"
-    echo "* Backup directory: ${BACKUP_DIR}" >> "${LOGFILE}"
+    # Initialize temp log file.
+    echo "==========================================================" > "${LOGFILE_TEMP}"
+    echo "* Starting backup: ${TIMESTAMP}" >> "${LOGFILE_TEMP}"
+    echo "* Backup directory: ${BACKUP_DIR}" >> "${LOGFILE_TEMP}"
 
 
     # Backup.
-    echo "* Backing up remote target: ${REMOTE_PATH} of host: ${REMOTE_HOST}" >> "${LOGFILE}"
-    sed -n 1,4p "${LOGFILE}"
+    echo "* Backing up remote target: ${REMOTE_PATH} of host: ${REMOTE_HOST}" >> "${LOGFILE_TEMP}"
+    sed -n 1,4p "${LOGFILE_TEMP}"
     ${CMD_RSYNC} \
         ${RSYNC_OPTIONS} \
         -e "ssh -o StrictHostKeyChecking=no -i ${RSYNC_SSH_KEY}" \
         "${USER}"@"${REMOTE_HOST}":"${REMOTE_PATH}" \
-        "${BACKUP_DIR}" 2>&1 | grep -v "${SUPPRESS_SSH_WARNING}" >> "${LOGFILE}"
+        "${BACKUP_DIR}" 2>&1 | grep -v "${SUPPRESS_SSH_WARNING}" >> "${LOGFILE_TEMP}"
 
     if [[ "${PIPESTATUS[0]}" == '0' ]]; then
-            echo "  - [DONE]" >> "${LOGFILE}"
+            echo "  - [DONE]" >> "${LOGFILE_TEMP}"
     else
         BACKUP_SUCCESS='NO'
     fi
 
-    echo "* Backup completed (Success? ${BACKUP_SUCCESS})." >> "${LOGFILE}"
+    echo "* Backup completed (Success? ${BACKUP_SUCCESS})." >> "${LOGFILE_TEMP}"
 }
 
 send_mail() {
-    cp ${LOGFILE} /tmp/mail_file
+    cp ${LOGFILE_TEMP} /tmp/mail_file
     MAIL_FILE=/tmp/mail_file
     sed -i '1d;$d' ${MAIL_FILE}
     sed -i "1s/^/To: ${MAILTO}\n/" ${MAIL_FILE}
-    # I needed to change the '/' delimiter to '@' because $REMOTE_PATH contains slashes!!!
+    # I needed to change the '/' delimiter to '@' because $REMOTE_PATH can contain slashes!!!
     sed -i "2s@^@Subject: RSYNC BACKUP - TARGET: ${REMOTE_PATH} - HOST: ${REMOTE_HOST}\n@" ${MAIL_FILE}
     sed -i "3s/^/*** Backup completed (Success? ${BACKUP_SUCCESS})\n/" ${MAIL_FILE}
     sed -i "4s/^/***\n/" ${MAIL_FILE}
@@ -88,10 +90,11 @@ send_mail() {
 
     cat ${MAIL_FILE} | ${CMD_MAIL} -C /etc/msmtprc -a backup "${MAILTO}"
     if [[ "${PIPESTATUS[1]}" == '0' ]]; then
-        echo "* E-mail Sent!" >> "${LOGFILE}"
+        echo "* E-mail Sent!" >> "${LOGFILE_TEMP}"
     else
-        echo "[ERROR] E-mail Failed, please see logs: /var/log/msmtp.log" >> "${LOGFILE}"
+        echo "[ERROR] E-mail Failed, please see logs: /var/log/msmtp.log" >> "${LOGFILE_TEMP}"
     fi
+    # remove temp mail file, we do not need it anymore.
     rm -f ${MAIL_FILE}
 }
 
@@ -99,6 +102,9 @@ backup
 if [[ -n ${MAILTO} ]]; then
     send_mail
 fi
-sed -n '5,$p' "$LOGFILE"
+sed -n '5,$p' "${LOGFILE_TEMP}"
+# Append temp log to main logfile and remove temp log.
+cat ${LOGFILE_TEMP} >> ${LOGFILE_MAIN}
+rm -f ${LOGFILE_TEMP}
 
 exit 0
