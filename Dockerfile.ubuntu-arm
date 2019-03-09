@@ -3,14 +3,14 @@ FROM arm32v7/ubuntu
 MAINTAINER Ioannis Angelakopoulos<ioagel@gmail.com>
 
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends rsync openssh-client msmtp ca-certificates && \
+  apt-get install -y --no-install-recommends cron rsync openssh-client msmtp ca-certificates && \
   rm -rf /var/lib/apt/lists/* \
   mkdir /backup
 
 RUN update-ca-certificates
 
-COPY rsync_backup.sh start.sh /
+COPY rsync_backup.sh start-ubuntu.sh /
 
 VOLUME ["/backup"]
 
-CMD ["/bin/bash", "/start.sh"]
+CMD ["/bin/bash", "/start-ubuntu.sh"]
