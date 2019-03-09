@@ -1,8 +1,10 @@
-FROM arm32v7/alpine
+FROM arm32v7/ubuntu
 
 MAINTAINER Ioannis Angelakopoulos<ioagel@gmail.com>
 
-RUN apk add --no-cache rsync openssh-client msmtp ca-certificates bash && \
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends rsync openssh-client msmtp ca-certificates && \
+  rm -rf /var/lib/apt/lists/* \
   mkdir /backup
 
 RUN update-ca-certificates
