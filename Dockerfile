@@ -2,12 +2,10 @@ FROM alpine:3.12
 
 LABEL author="Ioannis Angelakopoulos <ioagel@gmail.com>"
 
-RUN apk add --no-cache rsync tzdata openssh-client msmtp ca-certificates bash && \
-  cp /usr/share/zoneinfo/Europe/Athens /etc/localtime && \
-  echo "Europe/Athens" >  /etc/timezone && \
+RUN apk add --no-cache rsync openssh-client msmtp ca-certificates bash && \
   mkdir /backup
 
-RUN update-ca-certificates && apk del tzdata
+RUN update-ca-certificates
 
 COPY rsync_backup.sh start.sh /
 
