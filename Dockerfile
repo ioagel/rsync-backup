@@ -1,6 +1,6 @@
-FROM alpine:3.9
+FROM alpine:3.12
 
-MAINTAINER Ioannis Angelakopoulos<ioagel@gmail.com>
+LABEL author="Ioannis Angelakopoulos <ioagel@gmail.com>"
 
 RUN apk add --no-cache rsync openssh-client msmtp ca-certificates bash && \
   mkdir /backup

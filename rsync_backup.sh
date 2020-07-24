@@ -15,6 +15,7 @@ BACKUP_ROOTDIR=${BACKUP_ROOTDIR:-/backup} # for docker, mount a volume here
 REMOTE_HOST=${REMOTE_HOST}
 REMOTE_PATH=${REMOTE_PATH}
 
+SSH_PORT=${SSH_PORT:-22}
 RSYNC_OPTIONS=${RSYNC_OPTIONS:--a --delete}
 RSYNC_SSH_KEY=${RSYNC_SSH_KEY:-/run/secrets/rsync_ssh_key}
 USER=${USER:-root}
@@ -66,7 +67,7 @@ backup() {
     sed -n 1,4p "${LOGFILE_TEMP}"
     ${CMD_RSYNC} \
         ${RSYNC_OPTIONS} \
-        -e "ssh -o StrictHostKeyChecking=no -i ${RSYNC_SSH_KEY}" \
+        -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ${RSYNC_SSH_KEY}" \
         "${USER}"@"${REMOTE_HOST}":"${REMOTE_PATH}" \
         "${BACKUP_DIR}" 2>&1 | grep -v "${SUPPRESS_SSH_WARNING}" >> "${LOGFILE_TEMP}"
 
